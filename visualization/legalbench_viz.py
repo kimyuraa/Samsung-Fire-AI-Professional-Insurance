@@ -4,8 +4,8 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 import os
 
-# Save outputs next to this script file
-OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outputs")
+# ── 경로 설정 ──────────────────────────────────────────────────────────────────
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def out(filename):
@@ -15,7 +15,6 @@ plt.rcParams['font.family'] = 'DejaVu Sans'
 plt.rcParams['axes.spines.top'] = False
 plt.rcParams['axes.spines.right'] = False
 
-# error_risk = 1 - accuracy  (higher = more likely AI error)
 RAW = {
     "Contract Review\n(CUAD)": [
         ("Affiliate License (Licensee)",   1-0.9242),
@@ -198,9 +197,7 @@ def risk_color(v):
     if v >= 0.20:  return "#EF9F27"
     return "#639922"
 
-# ─────────────────────────────────────────────────────────────
-# Fig 1 · Overview – average error risk by category
-# ─────────────────────────────────────────────────────────────
+# Fig 1 · Overview
 avgs = {cat: np.mean([v for _, v in items]) for cat, items in RAW.items()}
 sorted_cats = sorted(avgs, key=lambda c: avgs[c], reverse=True)
 
@@ -239,10 +236,7 @@ fig1.savefig(out('01_overview_by_category.png'), dpi=150, bbox_inches='tight')
 plt.close(fig1)
 print("Saved: 01_overview_by_category.png")
 
-
-# ─────────────────────────────────────────────────────────────
-# Fig 2 · Detail subplots – all 7 categories, one chart each
-# ─────────────────────────────────────────────────────────────
+# Fig 2 · Detail subplots
 fig2 = plt.figure(figsize=(22, 46))
 fig2.patch.set_facecolor('#FAFAFA')
 gs = gridspec.GridSpec(4, 2, figure=fig2, hspace=0.45, wspace=0.35)
@@ -253,12 +247,10 @@ categories_list = list(RAW.keys())
 for idx, (cat, pos) in enumerate(zip(categories_list, axes_positions)):
     ax = fig2.add_subplot(gs[pos])
     ax.set_facecolor('#FAFAFA')
-
     items  = sorted(RAW[cat], key=lambda x: x[1], reverse=True)
     labels = [lbl for lbl, _ in items]
     values = [v * 100 for _, v in items]
     colors = [risk_color(v/100) for v in values]
-
     ax.barh(labels, values, color=colors, height=0.65, zorder=3)
     ax.set_xlim(0, 110)
     ax.set_xlabel('Error Risk (%)', fontsize=9)
@@ -270,29 +262,22 @@ for idx, (cat, pos) in enumerate(zip(categories_list, axes_positions)):
     ax.tick_params(axis='x', labelsize=8)
     ax.xaxis.grid(True, linestyle='--', alpha=0.4, zorder=0)
     ax.set_axisbelow(True)
-
     for i, (val, lbl) in enumerate(zip(values, labels)):
         ax.text(val + 0.5, i, f'{val:.1f}%', va='center', fontsize=7, color='#444')
-
     for thresh, lc in [(20, '#639922'), (40, '#E24B4A')]:
         ax.axvline(thresh, color=lc, lw=0.8, ls='--', alpha=0.6, zorder=2)
 
 fig2.add_subplot(gs[3,1]).set_visible(False)
-
 fig2.suptitle('LegalBench: Detailed AI Error Risk by Legal Task Category',
               fontsize=15, fontweight='bold', y=1.002)
 fig2.text(0.5, -0.002,
           'Error Risk = 1 - accuracy  |  Reference model: Meta-Llama-3.1-70B-Instruct-Turbo  |  Source: LegalEvalHub',
           ha='center', fontsize=9, color='#888')
-
 plt.savefig(out('02_detail_all_categories.png'), dpi=150, bbox_inches='tight')
 plt.close(fig2)
 print("Saved: 02_detail_all_categories.png")
 
-
-# ─────────────────────────────────────────────────────────────
-# Fig 3 · Scatter – individual tasks coloured by category
-# ─────────────────────────────────────────────────────────────
+# Fig 3 · Scatter
 fig3, ax3 = plt.subplots(figsize=(13, 8))
 fig3.patch.set_facecolor('#FAFAFA')
 ax3.set_facecolor('#FAFAFA')
@@ -309,12 +294,11 @@ ys = [p[0] for p in all_pts]
 cs = [p[1] for p in all_pts]
 
 ax3.scatter(xs, ys, c=cs, s=55, zorder=3, alpha=0.85)
-ax3.axhline(40, color='#E24B4A', lw=1, ls='--', alpha=0.7, label='High Risk Threshold (40%)')
-ax3.axhline(20, color='#EF9F27', lw=1, ls='--', alpha=0.7, label='Medium Risk Threshold (20%)')
+ax3.axhline(40, color='#E24B4A', lw=1, ls='--', alpha=0.7)
+ax3.axhline(20, color='#EF9F27', lw=1, ls='--', alpha=0.7)
 ax3.fill_between([-1, len(xs)], 40, 100, color='#E24B4A', alpha=0.05)
 ax3.fill_between([-1, len(xs)], 20,  40, color='#EF9F27', alpha=0.05)
 ax3.fill_between([-1, len(xs)],  0,  20, color='#639922', alpha=0.05)
-
 ax3.set_xlim(-2, len(xs)+1)
 ax3.set_ylim(-3, 105)
 ax3.set_xlabel('Tasks (sorted by error risk ascending)', fontsize=11)

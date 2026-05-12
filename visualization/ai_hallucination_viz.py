@@ -16,15 +16,20 @@ for p in ["C:/Windows/Fonts/malgun.ttf","C:/Windows/Fonts/gulim.ttc"]:
 PALETTE = {"blue":"#5B8DEF","green":"#2ECC71","orange":"#F39C12",
            "red":"#E74C3C","purple":"#9B59B6","teal":"#1ABC9C"}
 
-# CSV 자동 탐색
+# ── 경로 설정 ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+DATA_DIR   = SCRIPT_DIR.parent / "data"
+OUTPUT_DIR = SCRIPT_DIR.parent / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+# CSV 자동 탐색 → data/ 폴더에서 찾음
 csv_path = next(
-    (f for f in SCRIPT_DIR.iterdir()
+    (f for f in DATA_DIR.iterdir()
      if f.suffix.lower()==".csv" and ("hallucination" in f.name.lower() or "할루" in f.name)),
     None
 )
 if csv_path is None:
-    print(f"CSV 파일을 찾을 수 없습니다. 이 파일과 같은 폴더에 CSV를 두세요.\n폴더: {SCRIPT_DIR}")
+    print(f"CSV 파일을 찾을 수 없습니다.\nData folder: {DATA_DIR}")
     sys.exit(1)
 
 # 인코딩 자동 감지
@@ -79,7 +84,6 @@ cmap = {"USA":"미국","Canada":"캐나다","Australia":"호주","UK":"영국",
         "Israel":"이스라엘","France":"프랑스","Brazil":"브라질","Argentina":"아르헨티나"}
 
 # ── 차트 레이아웃 ──────────────────────────────────────────────────────────────
-# 각 서브플롯을 독립적으로 크게 만들어 글씨 겹침 방지
 fig = plt.figure(figsize=(22, 28))
 fig.suptitle(
     f"AI 할루시네이션 법률 판례 데이터베이스 시각화\n"
@@ -87,7 +91,6 @@ fig.suptitle(
     fontsize=18, fontweight="bold", y=0.99
 )
 
-# hspace/wspace 넉넉히
 gs = fig.add_gridspec(4, 2, hspace=0.65, wspace=0.45,
                       top=0.96, bottom=0.04, left=0.08, right=0.97)
 
@@ -99,7 +102,7 @@ plt.rcParams.update({
     "axes.titlepad": 14,
 })
 
-# ── (1) 도넛: 당사자 유형 ──────────────────────────────────────────────────────
+# ── (1) 도넛: 당사자 유형
 ax1 = fig.add_subplot(gs[0, 0])
 pc = df["Party_Simple"].value_counts()
 wedges, texts, autotexts = ax1.pie(
@@ -116,7 +119,7 @@ for at in autotexts:
     at.set_fontweight("bold")
 ax1.set_title("당사자 유형", fontsize=13, fontweight="bold")
 
-# ── (2) 가로 막대: 국가별 ──────────────────────────────────────────────────────
+# ── (2) 가로 막대: 국가별
 ax2 = fig.add_subplot(gs[0, 1])
 lkr = [cmap.get(c, c) for c in top_countries.index]
 b2 = ax2.barh(lkr[::-1], top_countries.values[::-1],
@@ -131,7 +134,7 @@ ax2.set_title("국가별 판례 수 (상위 8개국)", fontsize=13, fontweight="
 ax2.grid(axis="y", alpha=0)
 ax2.set_xlim(0, top_countries.values.max() * 1.2)
 
-# ── (3) 막대: 할루시네이션 유형 ────────────────────────────────────────────────
+# ── (3) 막대: 할루시네이션 유형
 ax3 = fig.add_subplot(gs[1, 0])
 hk = list(hall.keys())
 hv = list(hall.values())
@@ -147,7 +150,7 @@ ax3.tick_params(axis="y", labelsize=10)
 ax3.set_title("할루시네이션 유형별 케이스 수", fontsize=13, fontweight="bold")
 ax3.set_ylim(0, max(hv) * 1.18)
 
-# ── (4) 가로 막대: 결과 유형 ────────────────────────────────────────────────────
+# ── (4) 가로 막대: 결과 유형
 ax4 = fig.add_subplot(gs[1, 1])
 b4 = ax4.barh(top_out.index[::-1], top_out.values[::-1],
               color=PALETTE["green"], edgecolor="none", height=0.6)
@@ -161,7 +164,7 @@ ax4.set_title("주요 결과(Outcome) 유형 (상위 10개)", fontsize=13, fontw
 ax4.grid(axis="y", alpha=0)
 ax4.set_xlim(0, top_out.values.max() * 1.2)
 
-# ── (5) 라인: 월별 추이 ────────────────────────────────────────────────────────
+# ── (5) 라인: 월별 추이
 ax5 = fig.add_subplot(gs[2, :])
 ax5.plot(monthly["ym"], monthly["count"],
          color=PALETTE["blue"], linewidth=2.5,
@@ -185,7 +188,7 @@ ax5.annotate(
     arrowprops=dict(arrowstyle="->", color="#aaa", lw=1.2)
 )
 
-# ── (6) 막대: AI 도구 ──────────────────────────────────────────────────────────
+# ── (6) 막대: AI 도구
 ax6 = fig.add_subplot(gs[3, :])
 tc = [PALETTE["red"], PALETTE["blue"], PALETTE["purple"], PALETTE["teal"],
       PALETTE["orange"], PALETTE["orange"], PALETTE["green"], PALETTE["blue"]]
@@ -200,8 +203,8 @@ ax6.set_xticklabels([t.title() for t in top_tools.index], fontsize=11)
 ax6.tick_params(axis="y", labelsize=10)
 ax6.set_ylim(0, top_tools.values[0] * 1.22)
 
-# ── 저장 ───────────────────────────────────────────────────────────────────────
-out = SCRIPT_DIR / "ai_hallucination_dashboard.png"
+# ── 저장 → output/ 폴더 ────────────────────────────────────────────────────────
+out = OUTPUT_DIR / "ai_hallucination_dashboard.png"
 plt.savefig(out, bbox_inches="tight", dpi=150)
 print(f"저장 완료: {out}")
 plt.show()

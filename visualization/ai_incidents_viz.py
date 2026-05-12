@@ -25,15 +25,20 @@ plt.rcParams.update({
     "figure.dpi": 130,
 })
 
-# Auto-find CSV
+# ── 경로 설정 ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+DATA_DIR   = SCRIPT_DIR.parent / "data"
+OUTPUT_DIR = SCRIPT_DIR.parent / "output"
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+# Auto-find CSV → data/ 폴더에서 찾음
 csv_path = next(
-    (f for f in SCRIPT_DIR.iterdir()
+    (f for f in DATA_DIR.iterdir()
      if f.suffix.lower() == ".csv" and "incident" in f.name.lower()),
     None
 )
 if csv_path is None:
-    print(f"CSV file not found.\nFolder: {SCRIPT_DIR}")
+    print(f"CSV file not found.\nData folder: {DATA_DIR}")
     sys.exit(1)
 
 # Load CSV
@@ -76,7 +81,7 @@ fig = plt.figure(figsize=(20, 20))
 gs  = fig.add_gridspec(3, 2, hspace=0.55, wspace=0.38,
                        top=0.95, bottom=0.06, left=0.08, right=0.97)
 
-# ── (1) Line: full trend ──────────────────────────────────────────────────────
+# ── (1) Line: full trend
 ax1 = fig.add_subplot(gs[0, :])
 ax1.plot(years, counts, color=PALETTE["blue"], linewidth=2.5,
          marker="o", markersize=7, markerfacecolor="white", markeredgewidth=2.5)
@@ -91,7 +96,7 @@ ax1.set_xticklabels(years, fontsize=11)
 ax1.tick_params(axis="y", labelsize=11)
 ax1.set_ylim(0, max(counts) * 1.18)
 
-# ── (2) Bar: year-over-year change ────────────────────────────────────────────
+# ── (2) Bar: year-over-year change
 ax2 = fig.add_subplot(gs[1, 0])
 colors_yoy = [PALETTE["green"] if v >= 0 else PALETTE["red"] for v in yoy[1:]]
 bars2 = ax2.bar(years[1:], yoy[1:], color=colors_yoy, edgecolor="none", width=0.6)
@@ -108,7 +113,7 @@ ax2.set_xticks(years[1:])
 ax2.set_xticklabels(years[1:], rotation=40, ha="right", fontsize=10)
 ax2.tick_params(axis="y", labelsize=11)
 
-# ── (3) Line: cumulative ──────────────────────────────────────────────────────
+# ── (3) Line: cumulative
 ax3 = fig.add_subplot(gs[1, 1])
 ax3.plot(years, cumulative, color=PALETTE["purple"], linewidth=2.5,
          marker="o", markersize=6, markerfacecolor="white", markeredgewidth=2)
@@ -120,7 +125,7 @@ ax3.set_xticklabels(years, rotation=40, ha="right", fontsize=10)
 ax3.tick_params(axis="y", labelsize=11)
 ax3.set_ylim(0, max(cumulative) * 1.12)
 
-# ── (4) Bar: per-year count ───────────────────────────────────────────────────
+# ── (4) Bar: per-year count
 ax4 = fig.add_subplot(gs[2, :])
 bar_colors = [PALETTE["red"] if y == peak_yr else PALETTE["light_blue"] for y in years]
 bars4 = ax4.bar(years, counts, color=bar_colors, edgecolor="none", width=0.65)
@@ -135,8 +140,8 @@ ax4.set_xticklabels(years, fontsize=11)
 ax4.tick_params(axis="y", labelsize=11)
 ax4.set_ylim(0, max(counts) * 1.18)
 
-# ── Save ──────────────────────────────────────────────────────────────────────
-out = SCRIPT_DIR / "ai_incidents_dashboard.png"
+# ── Save → output/ 폴더
+out = OUTPUT_DIR / "ai_incidents_dashboard.png"
 plt.savefig(out, bbox_inches="tight", dpi=150)
 print(f"\nSaved: {out}")
 plt.show()
