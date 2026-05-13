@@ -212,19 +212,18 @@ def choose(options: dict, title: str, multi: bool = False):
 # ───────────────────────────────────────────────
 def compute_task_weight(selected_keys: list[str]) -> dict:
     weights = [TASK_WEIGHTS[k][1] for k in selected_keys]
-    avg = sum(weights) / len(weights)
-    high_cnt = sum(1 for w in weights if w >= 1.0)
-    ratio = high_cnt / len(weights)
-    if ratio > 0.7:
-        corr, corr_label = 1.2, "×1.2  고위험 집중 (70% 초과)"
-    elif ratio >= 0.4:
-        corr, corr_label = 1.0, "×1.0  보정 없음 (40~70%)"
-    else:
-        corr, corr_label = 0.9, "×0.9  저위험 집중 (40% 미만)"
+    max_w = max(weights)
+    high = [w for w in weights if w >= 1.0]
+    low  = [w for w in weights if w < 1.0]
+    high_add = 0.10 * (len(high) - 1) if len(high) >= 1 else 0
+    low_add  = 0.02 * len(low)
+    final = round(max_w + high_add + low_add, 4)
+    corr_label = f"max({max_w}) + 고위험추가({len(high)-1}개×0.10) + 저위험({len(low)}개×0.02)"
     return {
-        "avg": avg, "ratio": ratio,
-        "corr": corr, "corr_label": corr_label,
-        "final": round(avg * corr, 4),
+        "max_w": max_w, "high_cnt": len(high), "low_cnt": len(low),
+        "high_add": high_add, "low_add": low_add,
+        "corr_label": corr_label,
+        "final": final,
     }
 
 def calculate_premium(inputs: dict) -> dict:
@@ -472,14 +471,15 @@ def print_underwrite_result(inputs: dict, result: dict):
 
     tw = result["task"]
     steps = [
-        ("① 기준보험료",         f"₩{result['base']:,}",                      g),
-        ("② 직군 가중치",         f"×{result['job_w']}",                       c),
-        ("③ 업무 가중치 (평균)",  f"×{tw['avg']:.4f}  ({len(inputs['task_keys'])}개 선택)", c),
-        ("   집중도 보정",         tw['corr_label'],                             d),
-        ("   최종 업무 가중치",   f"×{tw['final']}",                            c),
-        ("④ AI 리스크 할증",      f"+{int(result['ai_sur']*100)}%",             y),
-        ("⑤ 숙련도 할인",         f"-{int(result['skill_disc']*100)}%",         g),
-        ("⑥ 빈도 할증",           f"+{int(result['freq_sur']*100)}%",           y),
+        ("① 기준보험료",         f"₩{result['base']:,}",                                g),
+        ("② 직군 가중치",         f"×{result['job_w']}",                                 c),
+        ("③ 업무 가중치 (max)",   f"×{tw['max_w']}  ({len(inputs['task_keys'])}개 선택)", c),
+        ("   고위험 추가 가산",    f"+{tw['high_add']:.2f}  ({tw['high_cnt']-1}개×0.10)", d),
+        ("   저위험 가산",         f"+{tw['low_add']:.2f}  ({tw['low_cnt']}개×0.02)",     d),
+        ("   최종 업무 가중치",    f"×{tw['final']}",                                     c),
+        ("④ AI 리스크 할증",      f"+{int(result['ai_sur']*100)}%",                       y),
+        ("⑤ 숙련도 할인",         f"-{int(result['skill_disc']*100)}%",                   g),
+        ("⑥ 빈도 할증",           f"+{int(result['freq_sur']*100)}%",                     y),
     ]
     for label, val, col in steps:
         print(f"  {d(label):<30}  {col(val)}")
