@@ -114,3 +114,14 @@ for task, w in task_final.items():
         alpha = 0.7 if n >= THRESHOLD else 0.3
         note  = f"{cat} | 제재율 {doc_stats[cat]['mon_rate']:.1f}% | n={n} | 데이터{int(alpha*100)}%+논리{int((1-alpha)*100)}%"
     print(f"  {w}  {task:<42} ({note})")
+
+# ── 직군 가중치 산출 근거 (Charlotin DB 직접 집계) ────────────────
+print("\n[직군 가중치 산출 근거]")
+total = len(df[df["Monetary Penalty"].notna() & (df["Monetary Penalty"] != "")])
+lawyer_mon = len(lawyer_df[lawyer_df["Monetary Penalty"].notna() & (lawyer_df["Monetary Penalty"] != "")])
+lawyer_total = len(lawyer_df)
+if lawyer_total > 0:
+    mon_rate = lawyer_mon / lawyer_total * 100
+    print(f"  변호사 금전제재율: {mon_rate:.1f}%  (n={lawyer_total}, 금전제재 {lawyer_mon}건)")
+print("  ※ 직군 가중치 1.30은 위 금전제재율 기준 정규화값 (최고위험 직군 = max)")
+print("  ※ 변리사·법무사는 한국 실무 관행 및 대한변협(2025) 보고서 기반 보정")
